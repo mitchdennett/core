@@ -2,6 +2,7 @@ from config import session
 from masonite.app import App
 from masonite.drivers.SessionCookieDriver import SessionCookieDriver
 from masonite.drivers.SessionMemoryDriver import SessionMemoryDriver
+from masonite.drivers.SessionRedisDriver import SessionRedisDriver
 from masonite.managers.SessionManager import SessionManager
 from masonite.request import Request
 from masonite.testsuite.TestSuite import generate_wsgi
@@ -17,11 +18,13 @@ class TestSession:
         self.app.bind('SessionConfig', session)
         self.app.bind('SessionCookieDriver', SessionCookieDriver)
         self.app.bind('SessionMemoryDriver', SessionMemoryDriver)
+        self.app.bind('SessionRedisDriver', SessionRedisDriver)
         self.app.bind('SessionManager', SessionManager(self.app))
         self.app.bind('Application', self.app)
+        self.drivers = ['memory', 'cookie', 'redis']
 
     def test_session_request(self):
-        for driver in ('memory', 'cookie'):
+        for driver in self.drivers:
             session = self.app.make('SessionManager').driver(driver)
             session.set('username', 'pep')
             session.set('password', 'secret')
@@ -29,21 +32,21 @@ class TestSession:
             assert session.get('password') == 'secret'
 
     def test_session_has_no_data(self):
-        for driver in ('memory', 'cookie'):
+        for driver in self.drivers:
             session = self.app.make('SessionManager').driver(driver)
             session._session = {}
             session._flash = {}
             assert session.has('nodata') is False
 
     def test_change_ip_address(self):
-        for driver in ('memory', 'cookie'):
+        for driver in self.drivers:
             session = self.app.make('SessionManager').driver(driver)
             session.environ['REMOTE_ADDR'] = '111.222.33.44'
             session.set('username', 'pep')
             assert session.get('username') == 'pep'
 
     def test_session_get_all_data(self):
-        for driver in ('memory', 'cookie'):
+        for driver in self.drivers:
             session = self.app.make('SessionManager').driver(driver)
             session.environ['REMOTE_ADDR'] = 'get.all.data'
             session.set('username', 'pep')
@@ -52,7 +55,7 @@ class TestSession:
             assert session.all() == {'username': 'pep', 'password': 'secret'}
 
     def test_session_has_data(self):
-        for driver in ('memory', 'cookie'):
+        for driver in self.drivers:
             session = self.app.make('SessionManager').driver(driver)
             session._session = {}
             session._flash = {}
@@ -61,7 +64,7 @@ class TestSession:
             assert session.has('has_password') is False
 
     def test_session_helper(self):
-        for driver in ('memory', 'cookie'):
+        for driver in self.drivers:
             session = self.app.make('SessionManager').driver(driver)
             session._session = {}
             session._flash = {}
@@ -70,7 +73,7 @@ class TestSession:
             assert isinstance(helper(), type(session))
 
     def test_session_flash_data(self):
-        for driver in ('memory', 'cookie'):
+        for driver in self.drivers:
             session = self.app.make('SessionManager').driver(driver)
             session._session = {}
             session.flash('flash_username', 'pep')
@@ -92,7 +95,7 @@ class TestSession:
         assert session.get('flash_') is None
 
     def test_session_flash_data_serializes_dict(self):
-        for driver in ('cookie', 'memory'):
+        for driver in self.drivers:
             session = self.app.make('SessionManager').driver(driver)
             session._session = {}
             session.flash('flash_dict', {'id': 1})
@@ -101,14 +104,14 @@ class TestSession:
             assert session.get('get_dict') == {'id': 1}
 
     def test_reset_serializes_dict(self):
-        for driver in ('memory', 'cookie'):
+        for driver in self.drivers:
             session = self.app.make('SessionManager').driver(driver)
             session.set('flash_', 'test_pep')
             session.reset()
             assert session.get('reset_username') is None
 
     def test_delete_session(self):
-        for driver in ('memory', 'cookie'):
+        for driver in self.drivers:
             session = self.app.make('SessionManager').driver(driver)
             session.set('test1', 'value')
             session.set('test2', 'value')

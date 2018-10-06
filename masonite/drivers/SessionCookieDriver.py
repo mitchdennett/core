@@ -3,12 +3,12 @@
 import json
 
 from masonite.contracts import SessionContract
-from masonite.drivers import BaseDriver
+from masonite.drivers.BaseSessionDriver import BaseSessionDriver
 from masonite.request import Request
 from masonite.app import App
 
 
-class SessionCookieDriver(SessionContract, BaseDriver):
+class SessionCookieDriver(BaseSessionDriver, SessionContract):
     """Cookie Session Driver
     """
 
@@ -19,8 +19,7 @@ class SessionCookieDriver(SessionContract, BaseDriver):
             Environ {dict} -- The WSGI environment
             Request {masonite.request.Request} -- The Request class.
         """
-
-        self.environ = app.make('Environ')
+        super().__init__(app)
         self.request = request
 
     def get(self, key):
@@ -66,15 +65,6 @@ class SessionCookieDriver(SessionContract, BaseDriver):
             return True
         return False
 
-    def all(self):
-        """Get all session data
-
-        Returns:
-            dict
-        """
-
-        return self.__collect_data()
-
     def delete(self, key):
         """Delete a value in the session by it's key.
 
@@ -85,7 +75,7 @@ class SessionCookieDriver(SessionContract, BaseDriver):
             bool -- If the key was deleted or not
         """
 
-        self.__collect_data()
+        self._collect_data()
 
         if self.request.get_cookie('s_{}'.format(key)):
             self.request.delete_cookie('s_{}'.format(key))
@@ -93,7 +83,7 @@ class SessionCookieDriver(SessionContract, BaseDriver):
 
         return False
 
-    def __collect_data(self):
+    def _collect_data(self):
         """Collect data from session and flash data
 
         Returns:
@@ -130,7 +120,7 @@ class SessionCookieDriver(SessionContract, BaseDriver):
             flash_only {bool} -- If only flash data should be deleted. (default: {False})
         """
 
-        cookies = self.__collect_data()
+        cookies = self._collect_data()
         for cookie in cookies:
             self.request.delete_cookie('s_{0}'.format(cookie))
 
@@ -139,9 +129,3 @@ class SessionCookieDriver(SessionContract, BaseDriver):
         """
 
         return self
-
-    def _get_serialization_value(self, value):
-        try:
-            return json.loads(value)
-        except ValueError:
-            return value

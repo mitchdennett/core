@@ -1,25 +1,16 @@
 """ Session Memory Module """
 
 from masonite.contracts import SessionContract
-from masonite.drivers import BaseDriver
+from masonite.drivers.BaseSessionDriver import BaseSessionDriver
 from masonite.app import App
 
 
-class SessionMemoryDriver(SessionContract, BaseDriver):
+class SessionMemoryDriver(BaseSessionDriver, SessionContract):
     """Memory Session Driver
     """
 
     _session = {}
     _flash = {}
-
-    def __init__(self, app: App):
-        """Cookie Session Constructor
-
-        Arguments:
-            Environ {dict} -- The WSGI environment
-        """
-
-        self.environ = app.make('Environ')
 
     def get(self, key):
         """Get a value from the session.
@@ -31,7 +22,7 @@ class SessionMemoryDriver(SessionContract, BaseDriver):
             string|None - Returns None if a value does not exist.
         """
 
-        data = self.__collect_data(key)
+        data = self._collect_data(key)
         if data:
             return data
 
@@ -45,7 +36,7 @@ class SessionMemoryDriver(SessionContract, BaseDriver):
             value {string} -- The value to set in the session.
         """
 
-        ip = self.__get_client_address()
+        ip = self._get_client_address()
 
         if ip not in self._session:
             self._session[ip] = {}
@@ -62,19 +53,10 @@ class SessionMemoryDriver(SessionContract, BaseDriver):
             bool
         """
 
-        data = self.__collect_data()
+        data = self._collect_data()
         if data and key in data:
             return True
         return False
-
-    def all(self):
-        """Get all session data
-
-        Returns:
-            dict
-        """
-
-        return self.__collect_data()
 
     def flash(self, key, value):
         """Add temporary data to the session.
@@ -84,7 +66,7 @@ class SessionMemoryDriver(SessionContract, BaseDriver):
             value {string} -- The value to set in the session.
         """
 
-        ip = self.__get_client_address()
+        ip = self._get_client_address()
         if ip not in self._flash:
             self._flash[ip] = {}
 
@@ -96,7 +78,7 @@ class SessionMemoryDriver(SessionContract, BaseDriver):
         Keyword Arguments:
             flash_only {bool} -- If only flash data should be deleted. (default: {False})
         """
-        ip = self.__get_client_address()
+        ip = self._get_client_address()
 
         if flash_only:
             if ip in self._flash:
@@ -115,7 +97,7 @@ class SessionMemoryDriver(SessionContract, BaseDriver):
             bool -- If the key was deleted or not
         """
 
-        data = self.__collect_data()
+        data = self._collect_data()
 
         if key in data:
             del data[key]
@@ -123,24 +105,14 @@ class SessionMemoryDriver(SessionContract, BaseDriver):
 
         return False
 
-    def __get_client_address(self):
-        """
-        Get ip from the client
-        """
-
-        if 'HTTP_X_FORWARDED_FOR' in self.environ:
-            return self.environ['HTTP_X_FORWARDED_FOR'].split(',')[-1].strip()
-
-        return self.environ['REMOTE_ADDR']
-
-    def __collect_data(self, key=False):
+    def _collect_data(self, key=False):
         """Collect data from session and flash data
 
         Returns:
             dict
         """
 
-        ip = self.__get_client_address()
+        ip = self._get_client_address()
 
         # Declare a new dictionary
         session = {}

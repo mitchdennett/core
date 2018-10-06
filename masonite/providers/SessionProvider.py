@@ -1,7 +1,7 @@
 """ A RedirectionProvider Service Provider """
 
 from config import session
-from masonite.drivers import SessionCookieDriver, SessionMemoryDriver
+from masonite.drivers import SessionCookieDriver, SessionMemoryDriver, SessionRedisDriver
 from masonite.managers import SessionManager
 from masonite.provider import ServiceProvider
 from masonite.view import View
@@ -14,6 +14,7 @@ class SessionProvider(ServiceProvider):
         self.app.bind('SessionConfig', session)
         self.app.bind('SessionMemoryDriver', SessionMemoryDriver)
         self.app.bind('SessionCookieDriver', SessionCookieDriver)
+        self.app.bind('SessionRedisDriver', SessionRedisDriver)
         self.app.bind('SessionManager', SessionManager(self.app))
 
     def boot(self, request: Request, view: View, session: SessionManager):
